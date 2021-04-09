@@ -1,42 +1,46 @@
 #include "parser.h"
 #include <stdio.h>
 
-static char* strp;
+static char* _inputStr; // pointer to next input character to be consumed
+static Symbol _currToken; // current token
+
+// Retrieve next token from input string
+static Symbol getNextToken()
+{
+    Symbol sym;
+    sym.value = '\0';
+    switch (_inputStr[0]) {
+        case '\0': sym.name=EPSLN; break;
+        case '*' : sym.name=KSTAR; _inputStr++; break;
+        case '(' : sym.name=GRPOP; _inputStr++; break;
+        case ')' : sym.name=GRPCL; _inputStr++; break;
+        case '|':  sym.name=DISJN; _inputStr++; break;
+        case '?':  sym.name=EXIST; _inputStr++; break;
+        case '[':  sym.name=RNGOP; _inputStr++; break;
+        case ']':  sym.name=RNGCL; _inputStr++; break;
+        case '-':  sym.name=RNGLN; _inputStr++; break;
+        case '\\': sym.name=ESCHR; sym.value=_inputStr[1]; _inputStr+=2; break;
+        default:   sym.name=CHARA; sym.value=_inputStr[0]; _inputStr++; break;
+    }
+    return sym;
+}
 
 void parse(char *str)
 {
-    strp = str;
+    _inputStr = str;
+    _currToken = getNextToken();
     rExpr();
     printf("\n");
 }
 
-Token getToken(char c)
-{
-    Token t = CHR;
-    switch (c) {
-        case '\0': t = EPS; break;
-        case '*' : t = KLS; break;
-        case '(' : t = POP; break;
-        case ')':  t = PCL; break;
-        case '.':  t = CON; break;
-        case '?':  t = QST; break;
-        case '|':  t = DIS; break;
-        case '[':  t = BRO; break;
-        case ']':  t = BRC; break;
-        case '-':  t = DSH; break;            
-        default: t = CHR; break;
-    }
-    return t;
-}
-
 int rExpr ()
 {
-    //printf("rE: %s \n", strp);
-    Token t = getToken(strp[0]);
-    switch (t) {
-        case POP:
-        case CHR:
-        case BRO:
+    printf("\nrE: %d, %s ", _currToken.name, _inputStr);
+    switch (_currToken.name) {
+        case GRPOP:
+        case CHARA:
+        case RNGOP:
+        case ESCHR:
             printf("1,");
             if (!rTerm()) return 0;
             if (!rExprP()) return 0;;
@@ -50,17 +54,16 @@ int rExpr ()
 
 int rExprP()
 {
-    //printf("rEp: %s \n", strp);
-    Token t = getToken(strp[0]);
-    switch (t) {
-        case DIS:
+    printf("\nrEp: %d, %s ", _currToken.name, _inputStr);
+    switch (_currToken.name) {
+        case DISJN:
             printf("2,");
-            strp++;
+            _currToken = getNextToken();
             if (!rTerm()) return 0;
             if (!rExprP()) return 0;
             break;
-        case EPS:
-        case PCL:
+        case EPSLN:
+        case GRPCL:
             printf("3,");
             break;
         default:
@@ -72,12 +75,12 @@ int rExprP()
 
 int rTerm()
 {    
-    //printf("rT: %s \n", strp);
-    Token t = getToken(strp[0]);
-    switch (t) {
-        case POP:
-        case CHR:
-        case BRO:
+    printf("\nrT: %d, %s ", _currToken.name, _inputStr);
+    switch (_currToken.name) {
+        case GRPOP:
+        case CHARA:
+        case RNGOP:
+        case ESCHR:
             printf("4,");
             if (!rForm()) return 0;
             if (!rTermP()) return 0;
@@ -91,19 +94,19 @@ int rTerm()
 
 int rTermP()
 {
-    //printf("rTp: %s \n", strp);
-    Token t = getToken(strp[0]);
-    switch (t) {
-        case POP:
-        case CHR:
-        case BRO:
+    printf("\nrTp: %d, %s ", _currToken.name, _inputStr);
+    switch (_currToken.name) {
+        case GRPOP:
+        case CHARA:
+        case RNGOP:
+        case ESCHR:
             printf("5,");
             if (!rForm()) return 0;
             if (!rTermP()) return 0;
             break;
-        case DIS:
-        case PCL:
-        case EPS:
+        case DISJN:
+        case GRPCL:
+        case EPSLN:
             printf("6,");
             break;
         default:
@@ -115,12 +118,12 @@ int rTermP()
 
 int rForm()
 {
-    //printf("rF: %s \n", strp);
-    Token t = getToken(strp[0]);
-    switch (t) {
-        case POP:
-        case CHR:
-        case BRO:
+    printf("\nrF: %d, %s ", _currToken.name, _inputStr);
+    switch (_currToken.name) {
+        case GRPOP:
+        case CHARA:
+        case RNGOP:
+        case ESCHR:
             printf("7,");
             if (!rBase()) return 0;
             if (!rFormP()) return 0;
@@ -134,23 +137,23 @@ int rForm()
 
 int rFormP()
 {
-    //printf("rFp: %s \n", strp);
-    Token t = getToken(strp[0]);
-    switch (t) {
-        case KLS:
+    printf("\nrFp: %d, %s ", _currToken.name, _inputStr);
+    switch (_currToken.name) {
+        case KSTAR:
             printf("8,");
-            strp++;
+            _currToken = getNextToken();
             break;
-        case QST:
+        case EXIST:
             printf("9,");
-            strp++;
+            _currToken = getNextToken();
             break;
-        case POP:
-        case PCL:
-        case DIS:
-        case CHR:
-        case EPS:
-        case BRO:
+        case GRPOP:
+        case GRPCL:
+        case DISJN:
+        case CHARA:
+        case EPSLN:
+        case RNGOP:
+        case ESCHR:
             printf("10,");
             break;
         default:
@@ -162,34 +165,30 @@ int rFormP()
 
 int rBase()
 {
-    //printf("rB: %s \n", strp);
-    Token t = getToken(strp[0]);
-    switch (t) {
-        case POP:
+    printf("\nrB: %d, %s ", _currToken.name, _inputStr);
+    switch (_currToken.name) {
+        case GRPOP:
             printf("11,");
-            strp++;
+            _currToken = getNextToken();
             if (!rExpr()) return 0;
-            if (getToken(strp[0]) == PCL) {
-                strp++;
-            } else {
+            if (_currToken.name != GRPCL) {
                 printf("\nerror: missing closing paranthesis..\n");
                 return 0;
             }
+            _currToken = getNextToken();
             break;
-        case CHR:
+        case RNGOP:
             printf("12,");
-            strp++;
+            
+            _currToken = getNextToken();
             break;
-        case BRO:
+        case CHARA:
             printf("13,");
-            if (getToken(strp[0]) == BRO && getToken(strp[1]) == CHR &&
-                getToken(strp[2]) == DSH && getToken(strp[3]) == CHR &&
-                getToken(strp[4]) == BRC) {
-                strp += 5;
-            } else {
-                printf("\n!error: range is not correctly formateed..\n");
-                return -1;
-            }
+            _currToken = getNextToken();
+            break;
+        case ESCHR:
+            printf("14,");
+            _currToken = getNextToken();
             break;
         default:
             printf("\n!error: lookahead does not match..\n");
